@@ -141,6 +141,12 @@ typedef struct LmhPackage_s
      */
     void ( *OnSysTimeUpdate )( void );
 #endif
+
+    /*!
+     *\brief    Indicates tha the packet requirers additional processing.
+     */
+    void ( *OnMacProcess )( void );
+
 }LmhPackage_t;
 
 #endif // __LMH_PACKAGE_H__

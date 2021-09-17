@@ -225,8 +225,6 @@ typedef enum PackageNotifyTypes_e
  */
 static void LmHandlerPackagesNotify( PackageNotifyTypes_t notifyType, void *params );
 
-static bool LmHandlerPackageIsTxPending( void );
-
 static void LmHandlerPackagesProcess( void );
 
 LmHandlerErrorStatus_t LmHandlerInit( LmHandlerCallbacks_t *handlerCallbacks,
@@ -265,15 +263,6 @@ LmHandlerErrorStatus_t LmHandlerInit( LmHandlerCallbacks_t *handlerCallbacks,
     }
     else
     {
-        // Configure the default datarate
-        mibReq.Type = MIB_CHANNELS_DEFAULT_DATARATE;
-        mibReq.Param.ChannelsDefaultDatarate = LmHandlerParams->TxDatarate;
-        LoRaMacMibSetRequestConfirm( &mibReq );
-
-        mibReq.Type = MIB_CHANNELS_DATARATE;
-        mibReq.Param.ChannelsDatarate = LmHandlerParams->TxDatarate;
-        LoRaMacMibSetRequestConfirm( &mibReq );
-
 #if( OVER_THE_AIR_ACTIVATION == 0 )
         // Tell the MAC layer which network server version are we connecting too.
         mibReq.Type = MIB_ABP_LORAWAN_VERSION;
@@ -346,9 +335,15 @@ bool LmHandlerIsBusy( void )
         return true;
     }
 
-    if( LmHandlerPackageIsTxPending( ) == true )
+    for( int8_t i = 0; i < PKG_MAX_NUMBER; i++ )
     {
-        return true;
+        if( LmHandlerPackages[i] != NULL )
+        {
+            if( LmHandlerPackages[i]->IsTxPending( ) == true )
+            {
+                return true;
+            }
+        }
     }
 
     return false;
@@ -377,13 +372,6 @@ void LmHandlerProcess( void )
 
     // Call all packages process functions
     LmHandlerPackagesProcess( );
-
-    // Check if a package transmission is pending.
-    // If it is the case exit function earlier
-    if( LmHandlerPackageIsTxPending( ) == true )
-    {
-        return;
-    }
 
     // If a MAC layer scheduled uplink is still pending try to send it.
     if( IsUplinkTxPending == true )
@@ -950,6 +938,7 @@ LmHandlerErrorStatus_t LmHandlerPackageRegister( uint8_t id, void *params )
         LmHandlerPackages[id]->OnJoinRequest = LmHandlerJoinRequest;
         LmHandlerPackages[id]->OnDeviceTimeRequest = LmHandlerDeviceTimeReq;
         LmHandlerPackages[id]->OnSysTimeUpdate = LmHandlerCallbacks->OnSysTimeUpdate;
+        LmHandlerPackages[id]->OnMacProcess = LmHandlerCallbacks->OnMacProcess;
         LmHandlerPackages[id]->Init( params, LmHandlerParams->DataBuffer, LmHandlerParams->DataBufferMaxSize );
 
         return LORAMAC_HANDLER_SUCCESS;
@@ -1015,21 +1004,6 @@ static void LmHandlerPackagesNotify( PackageNotifyTypes_t notifyType, void *para
             }
         }
     }
-}
-
-static bool LmHandlerPackageIsTxPending( void )
-{
-    for( int8_t i = 0; i < PKG_MAX_NUMBER; i++ )
-    {
-        if( LmHandlerPackages[i] != NULL )
-        {
-            if( LmHandlerPackages[i]->IsTxPending( ) == true )
-            {
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 static void LmHandlerPackagesProcess( void )

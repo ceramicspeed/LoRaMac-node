@@ -180,6 +180,7 @@ static LmhPackage_t LmhpFragmentationPackage =
     .OnJoinRequest = NULL,                                     // To be initialized by LmHandler
     .OnDeviceTimeRequest = NULL,                               // To be initialized by LmHandler
     .OnSysTimeUpdate = NULL,                                   // To be initialized by LmHandler
+    .OnMacProcess = NULL,                                      // To be initialized by LmHandler
 };
 
 // Delay value.
@@ -197,6 +198,8 @@ static void OnFragmentTxDelay( void* context )
     TimerStop( &FragmentTxDelayTimer );
     // Set the state.
     LmhpFragmentationState.TxDelayState = FRAGMENTATION_TX_DELAY_STATE_STOP;
+    LmhpFragmentationPackage.OnMacProcess();
+
 }
 
 LmhPackage_t *LmhpFragmentationPackageFactory( void )
