@@ -336,6 +336,9 @@ int32_t FragDecoderProcess( uint16_t fragCounter, uint8_t *rawData )
 
         // Update the FragDecoder.FragNbMissingIndex with the loosing frame
         FragFindMissingFrags( fragCounter );
+
+        if(fragCounter == FragDecoder.FragNb && FragDecoder.Status.FragNbLost == 0)
+            return FRAG_SESSION_FINISHED;
     }
     else
     {
